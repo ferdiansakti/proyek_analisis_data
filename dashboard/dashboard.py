@@ -71,9 +71,6 @@ elif options == 'Data Wrangling':
     if st.checkbox('Tampilkan jumlah missing values'):
         st.write("Jumlah Missing Values:")
         st.write(df_hour.isna().sum())
-    
-    if st.checkbox('Tampilkan jumlah duplikat'):
-        st.write("Jumlah Duplikat:", df_hour.duplicated().sum())
 
 elif options == 'Exploratory Data Analysis':
     st.header('Exploratory Data Analysis')
