@@ -15,7 +15,7 @@ options = st.sidebar.radio('Pilih bagian:',
 # Load dataset dengan caching
 @st.cache_data
 def load_data():
-    return pd.read_csv('hour.csv')
+    return pd.read_csv('dashboard/hour.csv')
 
 df_hour = load_data()
 
