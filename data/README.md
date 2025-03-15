@@ -11,5 +11,5 @@ pipenv shell
 ### 3. Install dependensi dari file requirements.txt
 pip install -r requirements.txt
 
-### 4. Run Streamlit App
+## 4. Run Streamlit App
 streamlit run dashboard.py
