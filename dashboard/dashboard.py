@@ -14,7 +14,7 @@ Aplikasi ini menganalisis pola penyewaan sepeda berdasarkan pengguna kasual dan 
 # Memuat dataset langsung dari file CSV
 @st.cache_data  # Cache data untuk meningkatkan performa
 def load_data():
-    data = pd.read_csv('hour.csv')  # Pastikan file 'hour.csv' ada di direktori yang sama
+    data = pd.read_csv('hour.csv')
     return data
 
 data_sepeda = load_data()
