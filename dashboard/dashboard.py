@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Load dataset
-data_sepeda = pd.read_csv('data_sepeda_cleaned.csv')
+data_sepeda = pd.read_csv('dashboard/data_sepeda_cleaned.csv')
 data_sepeda['dteday'] = pd.to_datetime(data_sepeda['dteday'])
 
 # Menambahkan kolom numerik untuk urutan bulan
