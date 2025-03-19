@@ -1,194 +1,112 @@
-# Import library yang diperlukan
 import streamlit as st
-import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Judul aplikasi
-st.title("🚴‍♂️ Analisis Penyewaan Sepeda 🚴‍♀️")
-st.markdown("""
-Aplikasi ini menganalisis pola penyewaan sepeda berdasarkan pengguna kasual dan terdaftar, waktu, musim, serta kondisi cuaca.
-""")
+# Load dataset
+data_sepeda = pd.read_csv('data_sepeda_cleaned.csv')
+data_sepeda['dteday'] = pd.to_datetime(data_sepeda['dteday'])
 
-# Memuat dataset langsung dari file CSV
-@st.cache_data  # Cache data untuk meningkatkan performa
-def load_data():
-    data = pd.read_csv('dashboard/hour.csv')
-    return data
+# Menambahkan kolom numerik untuk urutan bulan
+bulan_ke_angka = {
+    'Januari': 1, 'Februari': 2, 'Maret': 3, 'April': 4, 
+    'Mei': 5, 'Juni': 6, 'Juli': 7, 'Agustus': 8, 
+    'September': 9, 'Oktober': 10, 'November': 11, 'Desember': 12
+}
+data_sepeda['mnth_num'] = data_sepeda['mnth'].map(bulan_ke_angka)
 
-data_sepeda = load_data()
+# Sidebar untuk filter interaktif
+st.sidebar.header("Filter Data")
 
-# Menampilkan data
-st.header("📊 Data Awal")
-st.write("Berikut adalah 5 baris pertama dari dataset:")
-st.write(data_sepeda.head())
+# Filter berdasarkan periode waktu tertentu
+min_date = data_sepeda['dteday'].min()
+max_date = data_sepeda['dteday'].max()
+start_date = st.sidebar.date_input("Tanggal Mulai", min_value=min_date, max_value=max_date, value=min_date)
+end_date = st.sidebar.date_input("Tanggal Akhir", min_value=min_date, max_value=max_date, value=max_date)
 
-# Menampilkan dimensi data
-st.write(f"Ukuran dataset: {data_sepeda.shape[0]} baris dan {data_sepeda.shape[1]} kolom.")
-
-# Data Wrangling
-st.header("🧹 Data Wrangling")
-
-# Menghapus kolom yang tidak diperlukan
-data_sepeda.drop(['instant', 'dteday'], axis=1, inplace=True)
-
-# Mengubah kolom 'season' menjadi kategori
-peta_musim = {1: 'Semi', 2: 'Panas', 3: 'Gugur', 4: 'Dingin'}
-data_sepeda['season'] = data_sepeda['season'].map(peta_musim)
-
-# Mengubah kolom 'mnth' menjadi kategori
-peta_bulan = {1: 'Januari', 2: 'Februari', 3: 'Maret', 4: 'April', 5: 'Mei', 6: 'Juni',
-              7: 'Juli', 8: 'Agustus', 9: 'September', 10: 'Oktober', 11: 'November', 12: 'Desember'}
-data_sepeda['mnth'] = data_sepeda['mnth'].map(peta_bulan)
-
-# Mengubah kolom 'weekday' menjadi kategori
-peta_hari = {0: 'Minggu', 1: 'Senin', 2: 'Selasa', 3: 'Rabu',
-             4: 'Kamis', 5: 'Jumat', 6: 'Sabtu'}
-data_sepeda['weekday'] = data_sepeda['weekday'].map(peta_hari)
-
-# Kategorisasi suhu
-temp_bins = np.linspace(data_sepeda['temp'].min(), data_sepeda['temp'].max(), 4)
-temp_labels = ['Dingin', 'Sedang', 'Panas']
-data_sepeda['kategori_suhu'] = pd.cut(data_sepeda['temp'], bins=temp_bins, labels=temp_labels)
-
-# Kategorisasi kelembapan
-humidity_bins = np.linspace(data_sepeda['hum'].min(), data_sepeda['hum'].max(), 4)
-humidity_labels = ['Rendah', 'Sedang', 'Tinggi']
-data_sepeda['kategori_kelembapan'] = pd.cut(data_sepeda['hum'], bins=humidity_bins, labels=humidity_labels)
-
-# Kategorisasi kecepatan angin
-wind_bins = np.linspace(data_sepeda['windspeed'].min(), data_sepeda['windspeed'].max(), 4)
-wind_labels = ['Tenang', 'Sejuk', 'Berangin']
-data_sepeda['kategori_angin'] = pd.cut(data_sepeda['windspeed'], bins=wind_bins, labels=wind_labels)
-
-# Kategorisasi waktu dalam sehari
-jam_bins = [0, 6, 12, 18, 24]
-jam_labels = ['Dini Hari', 'Pagi', 'Siang', 'Malam']
-data_sepeda['waktu_hari'] = pd.cut(data_sepeda['hr'], bins=jam_bins, labels=jam_labels, right=False)
-
-# Kategorisasi jumlah penyewaan sepeda
-rental_bins = np.linspace(data_sepeda['cnt'].min(), data_sepeda['cnt'].max(), 4)
-rental_labels = ['Rendah', 'Sedang', 'Tinggi']
-data_sepeda['kategori_sewa'] = pd.cut(data_sepeda['cnt'], bins=rental_bins, labels=rental_labels)
-
-# Menampilkan data setelah cleaning
-st.header("🧼 Data Setelah Cleaning")
-st.write("Berikut adalah 5 baris pertama dari dataset setelah pembersihan:")
-st.write(data_sepeda.head())
-
-# EDA
-st.header("🔍 Exploratory Data Analysis (EDA)")
-
-# Statistik dasar
-st.subheader("📈 Statistik Dasar")
-st.write("Statistik deskriptif untuk variabel `casual`, `registered`, dan `cnt`:")
-st.write(data_sepeda[['casual', 'registered', 'cnt']].describe())
-
-# Jumlah kategori pada variabel kategorikal
-st.subheader("📊 Jumlah Kategori pada Variabel Kategorikal")
-kolom_kategorikal = ['season', 'yr', 'mnth', 'weekday', 'weathersit', 'kategori_suhu',
-                     'kategori_angin', 'kategori_kelembapan', 'waktu_hari', 'kategori_sewa']
-for kolom in kolom_kategorikal:
-    st.write(f"Jumlah nilai untuk **{kolom}**:")
-    st.write(data_sepeda[kolom].value_counts())
-
-# Visualisasi
-st.header("📊 Visualisasi Data")
-
-# Pilihan visualisasi
-st.sidebar.header("⚙️ Pengaturan Visualisasi")
-pilihan_visualisasi = st.sidebar.selectbox(
-    "Pilih Visualisasi:",
-    ["Tren Penggunaan Sepeda per Jam", "Tren Penggunaan Sepeda per Hari", "Tren Penggunaan Sepeda per Bulan", 
-     "Total Penyewaan per Musim", "Pengaruh Suhu", "Pengaruh Kelembapan", "Pengaruh Kecepatan Angin"]
+# Filter berdasarkan musim
+selected_season = st.sidebar.multiselect(
+    "Pilih Musim", 
+    options=data_sepeda['season'].unique(), 
+    default=data_sepeda['season'].unique()
 )
 
-# Tren penggunaan sepeda per jam dalam sehari
-if pilihan_visualisasi == "Tren Penggunaan Sepeda per Jam":
-    st.subheader("🕒 Tren Penggunaan Sepeda per Jam dalam Sehari")
-    fig, ax = plt.subplots(figsize=(12, 6))
-    sns.lineplot(data=data_sepeda, x='hr', y='casual', label='Pengguna Kasual', color='blue', ax=ax)
-    sns.lineplot(data=data_sepeda, x='hr', y='registered', label='Pengguna Terdaftar', color='red', ax=ax)
-    ax.set_title('Tren Penggunaan Sepeda per Jam dalam Sehari')
-    ax.set_xlabel('Jam dalam Sehari')
-    ax.set_ylabel('Jumlah Pengguna')
-    ax.set_xticks(range(0, 25, 1))
-    ax.set_xticklabels([f"{i}:00" for i in range(0, 25, 1)], rotation=90)
-    ax.legend()
-    st.pyplot(fig)
+# Filter data berdasarkan pilihan pengguna
+filtered_data = data_sepeda[
+    (data_sepeda['dteday'] >= pd.Timestamp(start_date)) & 
+    (data_sepeda['dteday'] <= pd.Timestamp(end_date)) & 
+    (data_sepeda['season'].isin(selected_season))
+]
 
-# Tren penggunaan sepeda per hari dalam seminggu
-elif pilihan_visualisasi == "Tren Penggunaan Sepeda per Hari":
-    st.subheader("📅 Tren Penggunaan Sepeda per Hari dalam Seminggu")
-    fig, ax = plt.subplots(figsize=(12, 6))
-    sns.lineplot(data=data_sepeda, x='weekday', y='casual', marker='o', label='Pengguna Kasual', color='blue', ax=ax)
-    sns.lineplot(data=data_sepeda, x='weekday', y='registered', marker='o', label='Pengguna Terdaftar', color='red', ax=ax)
-    ax.set_title('Tren Penggunaan Sepeda per Hari dalam Seminggu')
-    ax.set_xlabel('Hari dalam Seminggu')
-    ax.set_ylabel('Jumlah Pengguna')
-    ax.legend()
-    st.pyplot(fig)
+# Judul Dashboard
+st.title("🚴‍♂️ Dashboard Analisis Penyewaan Sepeda 🚴‍♀️")
 
-# Tren penggunaan sepeda per bulan dalam setahun
-elif pilihan_visualisasi == "Tren Penggunaan Sepeda per Bulan":
-    st.subheader("📅 Tren Penggunaan Sepeda per Bulan dalam Setahun")
-    fig, ax = plt.subplots(figsize=(12, 6))
-    sns.lineplot(data=data_sepeda, x='mnth', y='casual', marker='o', label='Pengguna Kasual', color='blue', ax=ax)
-    sns.lineplot(data=data_sepeda, x='mnth', y='registered', marker='o', label='Pengguna Terdaftar', color='red', ax=ax)
-    ax.set_title('Tren Penggunaan Sepeda per Bulan dalam Setahun')
-    ax.set_xlabel('Bulan')
-    ax.set_ylabel('Jumlah Pengguna')
-    ax.legend()
-    st.pyplot(fig)
+# Tampilkan rentang tanggal dan musim yang dipilih
+st.write(f"📅 **Rentang Tanggal:** {start_date} sampai {end_date}")
+st.write(f"🌤️ **Musim yang Dipilih:** {', '.join(selected_season)}")
 
-# Visualisasi total penyewaan sepeda per musim
-elif pilihan_visualisasi == "Total Penyewaan per Musim":
-    st.subheader("🌦️ Total Penyewaan Sepeda per Musim")
-    fig, ax = plt.subplots(figsize=(12, 6))
-    sns.barplot(data=data_sepeda, x='season', y='cnt', ax=ax)
-    ax.set_title('Total Penyewaan Sepeda per Musim')
-    ax.set_xlabel('Musim')
-    ax.set_ylabel('Total Penyewaan')
-    st.pyplot(fig)
+# Menampilkan metrik dalam bentuk tabel
+st.subheader("📊 Ringkasan Penyewaan Sepeda")
 
-# Pengaruh suhu terhadap penyewaan sepeda
-elif pilihan_visualisasi == "Pengaruh Suhu":
-    st.subheader("🌡️ Pengaruh Suhu terhadap Penyewaan Sepeda")
-    fig, ax = plt.subplots(figsize=(12, 6))
-    sns.boxplot(data=data_sepeda, x='kategori_suhu', y='cnt', ax=ax)
-    ax.set_title('Pengaruh Suhu terhadap Penyewaan Sepeda')
-    ax.set_xlabel('Kategori Suhu')
-    ax.set_ylabel('Jumlah Penyewaan')
-    st.pyplot(fig)
+# Buat DataFrame untuk tabel metrik
+metrik_data = {
+    "Metrik": ["Total Penyewaan", "Rata-Rata Penyewaan per Hari", "Pengguna Kasual", "Pengguna Terdaftar"],
+    "Nilai": [
+        f"{filtered_data['cnt'].sum():,} sepeda",  # Total Penyewaan
+        f"{filtered_data['cnt'].mean():,.2f} sepeda/hari",  # Rata-Rata Penyewaan per Hari
+        f"{filtered_data['casual'].sum():,} sepeda",  # Pengguna Kasual
+        f"{filtered_data['registered'].sum():,} sepeda"  # Pengguna Terdaftar
+    ]
+}
+metrik_df = pd.DataFrame(metrik_data)
 
-# Pengaruh kelembapan terhadap penyewaan sepeda
-elif pilihan_visualisasi == "Pengaruh Kelembapan":
-    st.subheader("💧 Pengaruh Kelembapan terhadap Penyewaan Sepeda")
-    fig, ax = plt.subplots(figsize=(12, 6))
-    sns.boxplot(data=data_sepeda, x='kategori_kelembapan', y='cnt', ax=ax)
-    ax.set_title('Pengaruh Kelembapan terhadap Penyewaan Sepeda')
-    ax.set_xlabel('Kategori Kelembapan')
-    ax.set_ylabel('Jumlah Penyewaan')
-    st.pyplot(fig)
+# Tampilkan tabel
+st.table(metrik_df)
 
-# Pengaruh kecepatan angin terhadap penyewaan sepeda
-elif pilihan_visualisasi == "Pengaruh Kecepatan Angin":
-    st.subheader("🌬️ Pengaruh Kecepatan Angin terhadap Penyewaan Sepeda")
-    fig, ax = plt.subplots(figsize=(12, 6))
-    sns.boxplot(data=data_sepeda, x='kategori_angin', y='cnt', ax=ax)
-    ax.set_title('Pengaruh Kecepatan Angin terhadap Penyewaan Sepeda')
-    ax.set_xlabel('Kategori Kecepatan Angin')
-    ax.set_ylabel('Jumlah Penyewaan')
-    st.pyplot(fig)
+# Visualisasi pola penggunaan sepeda dalam sehari
+st.subheader("📊 Tren Penggunaan Sepeda per Jam dalam Sehari")
+fig, ax = plt.subplots(figsize=(12, 6))
+sns.lineplot(data=filtered_data, x='hr', y='casual', label='Pengguna Kasual', color='blue', ax=ax)
+sns.lineplot(data=filtered_data, x='hr', y='registered', label='Pengguna Terdaftar', color='red', ax=ax)
+ax.set_title('Tren Penggunaan Sepeda per Jam')
+ax.set_xlabel('Jam')
+ax.set_ylabel('Jumlah Pengguna')
+st.pyplot(fig)
 
-# Kesimpulan
-st.header("📝 Kesimpulan")
-st.write("""
-1. **Pola Variasi Penyewaan Sepeda antara Pengguna Kasual dan Terdaftar**:
-   - Pengguna terdaftar lebih sering menyewa sepeda dibanding pengguna kasual, terutama pada hari kerja dan jam sibuk.
-2. **Waktu dan Musim dengan Permintaan Tertinggi/Rendah**:
-   - Permintaan tertinggi terjadi di musim gugur, terutama pada siang dan malam hari. Permintaan terendah terjadi di musim semi.
-3. **Pengaruh Suhu, Kelembapan, dan Kecepatan Angin**:
-   - Penyewaan sepeda meningkat pada suhu sedang, kelembapan rendah hingga sedang, serta kecepatan angin yang tenang dan sejuk.
-""")
+# Visualisasi pola penggunaan sepeda dalam seminggu
+st.subheader("📊 Tren Penggunaan Sepeda per Hari dalam Seminggu")
+fig, ax = plt.subplots(figsize=(12, 6))
+sns.barplot(data=filtered_data, x='weekday', y='cnt', ax=ax)
+ax.set_title('Total Penyewaan Sepeda per Hari')
+ax.set_xlabel('Hari')
+ax.set_ylabel('Jumlah Penyewaan')
+st.pyplot(fig)
+
+# Visualisasi pola penggunaan sepeda dalam setahun
+st.subheader("📊 Tren Penggunaan Sepeda per Bulan")
+fig, ax = plt.subplots(figsize=(12, 6))
+
+# Ambil daftar bulan yang tersedia dalam data yang difilter
+bulan_tersedia = filtered_data['mnth'].unique()
+bulan_tersedia_urut = sorted(bulan_tersedia, key=lambda x: bulan_ke_angka[x])  # Urutkan berdasarkan numerik
+
+# Buat barplot dengan urutan bulan yang benar
+sns.barplot(
+    data=filtered_data, 
+    x='mnth',  # Gunakan kolom bulan sebagai string
+    y='cnt', 
+    ax=ax,
+    order=bulan_tersedia_urut  # Urutkan berdasarkan bulan yang tersedia
+)
+
+# Atur label sumbu x sebagai nama bulan yang tersedia
+ax.set_xticks(range(len(bulan_tersedia_urut)))
+ax.set_xticklabels(bulan_tersedia_urut, rotation=45)
+
+ax.set_title('Total Penyewaan Sepeda per Bulan')
+ax.set_xlabel('Bulan')
+ax.set_ylabel('Jumlah Penyewaan')
+st.pyplot(fig)
+
+# Tampilkan data yang difilter
+st.write("ℹ️ **Catatan:** Data yang ditampilkan adalah hasil filter berdasarkan tanggal dan musim yang dipilih.")
