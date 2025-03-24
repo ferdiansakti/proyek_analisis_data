@@ -10,7 +10,7 @@ st.set_page_config(page_title="Analisis Penyewaan Sepeda", page_icon="🚴", lay
 # Fungsi untuk memuat data
 @st.cache_data
 def load_data():
-    data = pd.read_csv('data_sepeda_cleaned.csv')
+    data = pd.read_csv('dashboard/data_sepeda_cleaned.csv')
     data['dteday'] = pd.to_datetime(data['dteday'])
     return data
 
