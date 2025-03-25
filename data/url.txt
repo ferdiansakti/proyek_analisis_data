@@ -1,1 +1,1 @@
-https://belajarmembuatdashboardferdian.streamlit.app/
+https://bikeanalysisferdian.streamlit.app/
