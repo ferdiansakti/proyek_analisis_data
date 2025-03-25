@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 # Load data
-data_sepeda = pd.read_csv('dashboard/data_sepeda_cleaned.csv')
+data_sepeda = pd.read_csv('data_sepeda_cleaned.csv')
 data_sepeda['dteday'] = pd.to_datetime(data_sepeda['dteday'])
 
 # ======================
@@ -100,7 +100,7 @@ with col2:
               f"{(filtered_data['registered'].sum()/filtered_data['cnt'].sum())*100:.1f}%")
 
 # Visualisasi tambahan
-tab1, tab2, tab3 = st.tabs(["Per Jam", "Per Hari", "Per Musim"])
+tab1, tab2, tab3, tab4 = st.tabs(["Per Jam", "Per Hari", "Per Bulan", "Per Musim"])
 
 with tab1:
     st.subheader("Tren per Jam")
@@ -126,6 +126,17 @@ with tab2:
     st.pyplot(fig)
 
 with tab3:
+    st.subheader("Tren per Bulan")
+    fig, ax = plt.subplots(figsize=(12, 6))
+    sns.lineplot(data=data_sepeda, x='mnth', y='casual', marker='o', label='Pengguna Kasual', color='blue', ax=ax)
+    sns.lineplot(data=data_sepeda, x='mnth', y='registered', marker='o', label='Pengguna Terdaftar', color='red', ax=ax)
+    plt.title('Tren Penggunaan Sepeda per Bulan dalam Setahun')
+    plt.xlabel('Bulan')
+    plt.ylabel('Jumlah Pengguna')
+    ax.legend()
+    st.pyplot(fig)
+
+with tab4:
     st.subheader("Per Musim")
     fig, ax = plt.subplots(figsize=(12, 6))
     sns.barplot(data=filtered_data, x='season', y='cnt')
