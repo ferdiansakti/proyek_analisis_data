@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 # Load data
-data_sepeda = pd.read_csv('dashboard/data_sepeda_cleaned.csv')
+data_sepeda = pd.read_csv('data_sepeda_cleaned.csv')
 data_sepeda['dteday'] = pd.to_datetime(data_sepeda['dteday'])
 
 # ======================
@@ -150,66 +150,95 @@ with tab4:
 # ===========================================
 st.header("2. Distribusi dan Perbedaan Penyewaan: Hari Kerja vs Hari Libur")
 
-# Data agregat
+# Agregasi data
 penyewaan_harian = filtered_data.groupby(['dteday', 'workingday'])['cnt'].sum().reset_index()
 
-col1, col2 = st.columns(2)
+# 2 kolom baris pertama
+row1_col1, row1_col2 = st.columns(2)
 
-with col1:
+with row1_col1:
+    # Boxplot Distribusi
     st.subheader("Distribusi Penyewaan")
-    fig, ax = plt.subplots(figsize=(10, 6))
-    sns.boxplot(x='workingday', y='cnt', data=penyewaan_harian)
-    plt.xticks([0, 1], ["Hari Libur", "Hari Kerja"])
-    plt.title("Distribusi Penyewaan Sepeda")
-    plt.xlabel("Tipe Hari")
-    plt.ylabel("Jumlah Penyewaan")
+    fig, ax = plt.subplots(figsize=(10, 5))
+    if 'Hari Kerja' in day_type and 'Hari Libur' not in day_type:
+        plot_data = penyewaan_harian[penyewaan_harian['workingday'] == 1]
+        x_order = [1]
+        labels = ["Hari Kerja"]
+    elif 'Hari Libur' in day_type and 'Hari Kerja' not in day_type:
+        plot_data = penyewaan_harian[penyewaan_harian['workingday'] == 0]
+        x_order = [0]
+        labels = ["Hari Libur"]
+    else:
+        plot_data = penyewaan_harian
+        x_order = [0, 1]
+        labels = ["Hari Libur", "Hari Kerja"]
+    sns.boxplot(x='workingday', y='cnt', data=plot_data, order=x_order, ax=ax)
+    ax.set_xticks(range(len(x_order)))
+    ax.set_xticklabels(labels)
+    ax.set_title("Distribusi Penyewaan")
     st.pyplot(fig)
 
-    # Rata-rata penyewaan
+with row1_col2:
+    # Barplot Rata-rata
+    st.subheader("Rata-Rata Penyewaan")
     ratarata_sewa = penyewaan_harian.groupby('workingday')['cnt'].mean()
-    fig, ax = plt.subplots(figsize=(8, 6))
-    sns.barplot(x=ratarata_sewa.index.astype(str), y=ratarata_sewa.values, 
-                hue=ratarata_sewa.index.astype(str), palette={'0': "red", '1': "blue"}, 
-                legend=False)
-    for i, val in enumerate(ratarata_sewa.values):
-        plt.text(i, val + 50, f"{val:.2f}", ha='center', fontweight='bold')
-    plt.title("Rata-Rata Penyewaan Sepeda")
-    plt.xlabel("Kategori Hari")
-    plt.ylabel("Rata-Rata Penyewaan")
-    plt.xticks(ticks=[0, 1], labels=["Hari Libur", "Hari Kerja"])
+    fig, ax = plt.subplots(figsize=(10, 5))
+    if 'Hari Kerja' in day_type and 'Hari Libur' not in day_type:
+        colors = {'1': "blue"}
+        order = ['1']
+        labels = ["Hari Kerja"]
+    elif 'Hari Libur' in day_type and 'Hari Kerja' not in day_type:
+        colors = {'0': "red"}
+        order = ['0']
+        labels = ["Hari Libur"]
+    else:
+        colors = {'0': "red", '1': "blue"}
+        order = ['0', '1']
+        labels = ["Hari Libur", "Hari Kerja"]
+    sns.barplot(x=ratarata_sewa.index.astype(str), y=ratarata_sewa.values,
+               palette=colors, order=order, ax=ax)
+    for i, val in enumerate(ratarata_sewa[ratarata_sewa.index.isin([int(x) for x in order])].values):
+        ax.text(i, val + 20, f"{val:.0f}", ha='center', fontweight='bold')
+    ax.set_title("Rata-Rata Harian")
+    ax.set_xticks(range(len(order)))
+    ax.set_xticklabels(labels)
     st.pyplot(fig)
 
-with col2:
-    st.subheader("Tren Waktu ke Waktu")
-    fig, ax = plt.subplots(figsize=(12, 6))
+# 2 kolom baris kedua
+row2_col1, row2_col2 = st.columns(2)
+
+with row2_col1:
+    # Tren per Jam
+    st.subheader("Tren per Jam")
+    fig, ax = plt.subplots(figsize=(10, 5))
+    if 'Hari Kerja' in day_type:
+        hari_kerja = filtered_data[filtered_data['workingday'] == 1].groupby('hr')['cnt'].mean()
+        sns.lineplot(x=hari_kerja.index, y=hari_kerja, label='Hari Kerja', color='blue')
+    if 'Hari Libur' in day_type:
+        hari_libur = filtered_data[filtered_data['workingday'] == 0].groupby('hr')['cnt'].mean()
+        sns.lineplot(x=hari_libur.index, y=hari_libur, label='Hari Libur', color='red')
+    ax.set_title("Pola Penyewaan per Jam")
+    ax.set_xlabel("Jam dalam Sehari")
+    ax.set_ylabel("Rata-Rata Penyewaan")
+    ax.set_xticks(range(0, 24, 2))
+    ax.legend(title="Kategori Hari")
+    ax.grid(True)
+    st.pyplot(fig)
+
+with row2_col2:
+    # Timeline Harian
+    st.subheader("Tren Harian")
+    fig, ax = plt.subplots(figsize=(10, 5))
     palette = {0: "red", 1: "blue"}
     sns.lineplot(x='dteday', y='cnt', hue='workingday', data=penyewaan_harian,
                 palette=palette, style='workingday', markers=True, dashes=False)
-    plt.title("Tren penyewaan sepeda dari waktu ke waktu")
-    plt.xlabel("Timeline")
-    plt.ylabel("Jumlah Penyewaan")
+    ax.set_title("Perkembangan Harian")
+    ax.set_xlabel("Tanggal")
+    ax.set_ylabel("Total Penyewaan")
     plt.xticks(rotation=45)
-    handles, labels = plt.gca().get_legend_handles_labels()
+    handles, labels = ax.get_legend_handles_labels()
     custom_labels = ["Hari Libur", "Hari Kerja"]
-    plt.legend(handles, custom_labels, title="Hari", loc='upper right', frameon=True)
-    st.pyplot(fig)
-
-    # Tren per jam
-    st.subheader("Tren per Jam")
-    penyewaan_per_jam_hari_kerja = filtered_data[filtered_data['workingday'] == 1].groupby('hr')['cnt'].mean()
-    penyewaan_per_jam_hari_libur = filtered_data[filtered_data['workingday'] == 0].groupby('hr')['cnt'].mean()
-    
-    fig, ax = plt.subplots(figsize=(10, 5))
-    sns.lineplot(x=penyewaan_per_jam_hari_kerja.index, y=penyewaan_per_jam_hari_kerja, 
-                label='Hari Kerja', color='blue')
-    sns.lineplot(x=penyewaan_per_jam_hari_libur.index, y=penyewaan_per_jam_hari_libur, 
-                label='Hari Libur', color='red')
-    plt.title("Tren Penyewaan Sepeda per Jam")
-    plt.xlabel("Jam dalam Sehari")
-    plt.ylabel("Rata-Rata Penyewaan")
-    plt.xticks(range(0, 24))
-    plt.legend(title="Kategori Hari", loc='upper right')
-    plt.grid(True)
+    ax.legend(handles, custom_labels, title="Hari")
     st.pyplot(fig)
 
 # ===========================================
