@@ -10,7 +10,7 @@ st.set_page_config(page_title="Analisis Penyewaan Sepeda", page_icon="🚴", lay
 # Fungsi untuk memuat data
 @st.cache_data
 def load_data():
-    data = pd.read_csv('dashboard/data_sepeda_cleaned.csv')
+    data = pd.read_csv('data_sepeda_cleaned.csv')
     data['dteday'] = pd.to_datetime(data['dteday'])
     return data
 
@@ -189,7 +189,7 @@ with tab3:
 # ======================
 # BAGIAN 3: HARI KERJA vs HARI LIBUR - PERBAIKAN
 # ======================
-st.header("🏢 vs 🏖️ Hari Kerja vs Hari Libur")
+st.header("🏢 Hari Kerja vs 🏖️ Hari Libur")
 
 col1, col2 = st.columns(2)
 
@@ -301,101 +301,72 @@ with col3:
     st.pyplot(fig)
 
 # ======================
-# BAGIAN 5: ANALISIS RFM
-# ======================
-st.header("🏆 Analisis RFM Pelanggan")
-
-if st.checkbox("Tampilkan Analisis RFM"):
-    # Hitung RFM
-    snapshot_date = filtered_data['dteday'].max() + pd.Timedelta(days=1)
-    rfm = filtered_data.groupby('registered').agg({
-        'dteday': lambda x: (snapshot_date - x.max()).days,
-        'instant': 'count',
-        'cnt': 'sum'
-    }).rename(columns={
-        'dteday': 'recency',
-        'instant': 'frequency',
-        'cnt': 'monetary'
-    })
-    
-    # Beri skor
-    rfm['R'] = pd.qcut(rfm['recency'], q=4, labels=[4,3,2,1])
-    rfm['F'] = pd.qcut(rfm['frequency'], q=4, labels=[1,2,3,4])
-    rfm['M'] = pd.qcut(rfm['monetary'], q=4, labels=[1,2,3,4])
-    
-    # Segmentasi
-    rfm['segment'] = np.where(
-        (rfm['R']>=3) & (rfm['F']>=3) & (rfm['M']>=3),
-        'Pelanggan Setia',
-        np.where(
-            (rfm['R']>=2) & (rfm['F']>=2),
-            'Pelanggan Potensial',
-            'Pelanggan Biasa'
-        )
-    )
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("Segmentasi Pelanggan")
-        fig, ax = plt.subplots(figsize=(8, 6))
-        rfm['segment'].value_counts().plot.pie(
-            autopct='%1.1f%%',
-            colors=['#66b3ff','#99ff99','#ff9999'],
-            explode=(0.1, 0, 0),
-            ax=ax
-        )
-        ax.set_ylabel('')
-        st.pyplot(fig)
-    
-    with col2:
-        st.subheader("Karakteristik Segment")
-        
-        st.markdown("""
-        **Pelanggan Setia**  
-        - Frekuensi tinggi & transaksi terbaru  
-        - Kontribusi pendapatan utama  
-        """)
-        
-        st.markdown("""
-        **Pelanggan Potensial**  
-        - Aktif tetapi frekuensi sedang  
-        - Butuh insentif untuk meningkatkan loyalitas  
-        """)
-        
-        st.markdown("""
-        **Pelanggan Biasa**  
-        - Jarang melakukan penyewaan  
-        - Perlu program reaktivasi  
-        """)
-
-# ======================
-# BAGIAN 6: KESIMPULAN
+# BAGIAN 5: KESIMPULAN
 # ======================
 st.header("🎯 Kesimpulan dan Rekomendasi")
+
 st.markdown("""
-1. **Pengguna Terdaftar sebagai Segmen Dominan**  
-   - Pengguna terdaftar mendominasi penyewaan sepeda, dengan rata-rata dari total penyewaan.  
-   - Mereka lebih sering menggunakan sepeda untuk keperluan transportasi harian, terutama selama jam sibuk pagi (07:00-09:00) dan sore (16:00-18:00).  
-   - Pola penyewaan mereka lebih stabil dibandingkan pengguna kasual, menandakan kebiasaan rutin dalam penggunaan sepeda.
+### 1. Pengguna Terdaftar sebagai Segmen Dominan  
+- Pengguna terdaftar mendominasi penyewaan sepeda, dengan rata-rata dari total penyewaan.  
+- Mereka lebih sering menggunakan sepeda untuk keperluan transportasi harian, terutama selama jam sibuk pagi (07:00-09:00) dan sore (16:00-18:00).  
+- Pola penyewaan mereka lebih stabil dibandingkan pengguna kasual, menandakan kebiasaan rutin dalam penggunaan sepeda.
+""")
 
-2. **Pola Penyewaan pada Hari Kerja vs Hari Libur**  
-   - **Hari Kerja:** Penyewaan meningkat signifikan pada pagi dan sore hari, sesuai dengan jam berangkat dan pulang kerja/sekolah.  
-   - **Hari Libur:** Penyewaan lebih tinggi secara keseluruhan, tetapi pola lebih fluktuatif dengan puncak di siang hari, menunjukkan dominasi penggunaan untuk rekreasi dan aktivitas santai.  
-   - Data juga menunjukkan bahwa pada hari kerja, pola penyewaan lebih stabil dibandingkan dengan hari libur.
+st.markdown("""
+### 2. Pola Penyewaan pada Hari Kerja vs Hari Libur  
+**Hari Kerja:**  
+- Penyewaan meningkat signifikan pada pagi dan sore hari, sesuai dengan jam berangkat dan pulang kerja/sekolah.  
+- Pola penyewaan lebih stabil dibandingkan dengan hari libur.  
 
-3. **Faktor Cuaca yang Mempengaruhi Penyewaan**  
-   - **Suhu Optimal:** Penyewaan meningkat pada suhu 20-25°C, menunjukkan preferensi pengguna terhadap kondisi cuaca yang nyaman.  
-   - **Kelembapan:** Kelembapan sedang (40-70%) mendorong lebih banyak penyewaan, sementara kelembapan tinggi (>80%) menyebabkan penurunan signifikan.  
-   - **Kecepatan Angin:** Penyewaan lebih tinggi ketika kecepatan angin rendah (<20 km/jam), tetapi berkurang drastis saat angin kencang yang dapat mengganggu kenyamanan bersepeda.  
-   - Cuaca ekstrem (suhu terlalu panas/dingin, kelembapan tinggi, dan angin kencang) menjadi faktor penghambat utama dalam penyewaan sepeda.
+**Hari Libur:**  
+- Penyewaan lebih tinggi secara keseluruhan, tetapi pola lebih fluktuatif dengan puncak di siang hari.  
+- Menunjukkan dominasi penggunaan untuk rekreasi dan aktivitas santai.  
+""")
 
-4. **Strategi Segmentasi Pelanggan dan Rekomendasi**  
-   - **Pelanggan Setia (Terdaftar Aktif):** Fokus pada program loyalitas, seperti diskon berlangganan atau fasilitas tambahan.  
-   - **Pelanggan Potensial (Pengguna Kasual):** Menawarkan insentif seperti tarif promosi di hari libur atau referral program agar lebih sering menggunakan layanan.  
-   - **Pelanggan Biasa (Tidak Konsisten):** Reaktivasi dengan promo khusus di cuaca optimal atau kerja sama dengan acara komunitas untuk meningkatkan keterlibatan.  
-   - **Adaptasi terhadap Cuaca:** Menyediakan informasi real-time mengenai kondisi cuaca dan menawarkan insentif untuk mendorong penyewaan saat cuaca mendukung.
+st.markdown("""
+### 3. Faktor Cuaca yang Mempengaruhi Penyewaan  
+**Kondisi Optimal:**  
+- Suhu 20-25°C  
+- Kelembapan sedang (40-70%)  
+- Kecepatan angin rendah (<20 km/jam)  
 
-**Kesimpulan Umum:**  
+**Faktor Penghambat:**  
+- Kelembapan tinggi (>80%)  
+- Angin kencang (>20 km/jam)  
+- Cuaca ekstrem (suhu terlalu panas/dingin)  
+""")
+
+st.markdown("""
+### 4. Strategi Segmentasi Pelanggan  
+
+**🚴‍♂️ Pengguna Terdaftar (Commuter)**  
+**Karakteristik:**  
+- Rutin menyewa saat jam sibuk pagi & sore  
+
+**Strategi:**  
+- **Program Loyalitas & Langganan:** Diskon mingguan/bulanan bagi pengguna rutin  
+- **Optimalisasi Aplikasi & Reservasi:** Tambahkan fitur pemesanan cepat untuk jam sibuk  
+
+**🌳 Pengguna Kasual (Recreational)**  
+**Karakteristik:**  
+- Aktif saat akhir pekan, dominan di siang hari  
+
+**Strategi:**  
+- **Paket Promosi Akhir Pekan:** Diskon atau paket spesial untuk penyewaan lebih lama  
+- **Kolaborasi dengan Tempat Wisata:** Titik penyewaan di taman, museum, atau area wisata  
+
+**🌦 Pengguna Sensitif terhadap Cuaca**  
+**Karakteristik:**  
+- Penyewaan meningkat saat suhu **20-25°C** dengan kelembapan **40-70%**  
+- Penyewaan menurun saat kelembapan tinggi **(>80%)** atau kecepatan angin **(>20 km/jam)**  
+- Cuaca ekstrem menjadi faktor utama dalam penurunan penyewaan  
+
+**Strategi:**  
+- **Tambahkan aksesori:** Jas hujan ringan atau pelindung angin di titik penyewaan  
+- **Penyesuaian stok:** Sesuaikan jumlah sepeda berdasarkan prediksi cuaca  
+""")
+
+st.markdown("""
+### Kesimpulan Umum  
 Penyewaan sepeda memiliki tren yang jelas berdasarkan tipe pengguna, hari, dan faktor cuaca. Untuk meningkatkan jumlah penyewaan, strategi optimasi harga, promosi berbasis cuaca, dan insentif loyalitas sangat penting. Selain itu, pemanfaatan teknologi seperti notifikasi cuaca dan rekomendasi waktu penyewaan dapat meningkatkan kenyamanan dan pengalaman pengguna secara keseluruhan.
 """)
