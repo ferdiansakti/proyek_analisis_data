@@ -261,10 +261,21 @@ with col1:
 
 with col2:
     fig, ax = plt.subplots(figsize=(8, 6))
-    sns.boxplot(data=filtered_data, x='kategori_kelembapan', y='cnt', order=['rendah', 'sedang', 'tinggi'])
-    plt.title('Pengaruh Kelembapan terhadap Penyewaan')
-    plt.xlabel('Kategori Kelembapan')
-    plt.ylabel('Jumlah Penyewaan')
+    filtered_data['kategori_kelembapan'] = filtered_data['kategori_kelembapan'].str.strip().str.lower()
+    existing_cats = filtered_data['kategori_kelembapan'].dropna().unique()
+    desired_order = ['rendah', 'sedang', 'tinggi']
+    valid_order = [cat for cat in desired_order if cat in existing_cats]
+    if len(valid_order) > 0:
+        sns.boxplot(
+            data=filtered_data,
+            x='kategori_kelembapan',
+            y='cnt',
+            order=valid_order,
+            ax=ax
+        )
+        ax.set_title('Pengaruh Kelembapan terhadap Penyewaan')
+        ax.set_xlabel('Kategori Kelembapan')
+        ax.set_ylabel('Jumlah Penyewaan')
     st.pyplot(fig)
 
 with col3:
