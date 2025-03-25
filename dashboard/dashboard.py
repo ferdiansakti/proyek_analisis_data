@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 # Load data
-data_sepeda = pd.read_csv('data_sepeda_cleaned.csv')
+data_sepeda = pd.read_csv('dashboard/data_sepeda_cleaned.csv')
 data_sepeda['dteday'] = pd.to_datetime(data_sepeda['dteday'])
 
 # ======================
